@@ -1,0 +1,129 @@
+using System;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+
+namespace SemanticAnalyzerLab
+{
+    class Program
+    {
+        static List<List<string>> Symboltable = new List<List<string>>();
+        static List<string> finalArray = new List<string>();
+        static List<int> Constants = new List<int>();
+        static Regex variable_Reg = new Regex(@"^[A-Za-z_][A-Za-z0-9]*$");
+
+        static void Main(string[] args)
+        {
+            InitializeSymbolTable();
+            InitializeFinalArray();
+            PrintLexerOutput();
+
+            for (int i = 0; i < finalArray.Count; i++)
+            {
+                Semantic_Analysis(i);
+            }
+
+            Console.WriteLine("\nSemantic Analysis Completed.");
+            Console.WriteLine("Final Symbol Table:");
+            foreach (var entry in Symboltable)
+            {
+                Console.WriteLine($"{entry[0]} ({entry[2]}): {entry[3]}");
+            }
+
+            Console.ReadLine();
+        }
+
+        static void InitializeSymbolTable()
+        {
+            Symboltable.Add(new List<string> { "x", "id", "int", "0" });
+            Symboltable.Add(new List<string> { "y", "id", "int", "0" });
+        }
+
+        static void InitializeFinalArray()
+        {
+            finalArray.AddRange(new string[] {
+                "int", "main", "(", ")", "{",
+                "int", "x", ";",
+                "x", "=", "3", "+", "4", ";",
+                "y", "=", "x", "+", "2", ";",
+                "}"
+            });
+        }
+
+        static void PrintLexerOutput()
+        {
+            Console.WriteLine("Lexer Output:");
+            int row = 1, col = 1;
+            foreach (string token in finalArray)
+            {
+                if (token == "int") Console.WriteLine($"INT ({row},{col})");
+                else if (token == "main") Console.WriteLine($"MAIN ({row},{col})");
+                else if (token == "(") Console.WriteLine($"LPAREN ({row},{col})");
+                else if (token == ")") Console.WriteLine($"RPAREN ({row},{col})");
+                else if (token == "{") Console.WriteLine($"LBRACE ({row},{col})");
+                else if (token == "}") Console.WriteLine($"RBRACE ({row},{col})");
+                else if (token == ";") Console.WriteLine($"SEMI ({row},{col})");
+                else if (token == "=") Console.WriteLine($"ASSIGN ({row},{col})");
+                else if (token == "+") Console.WriteLine($"PLUS ({row},{col})");
+                else if (Regex.IsMatch(token, @"^[0-9]+$"))
+                    Console.WriteLine($"INT_CONST ({row},{col}): {token}");
+                else if (variable_Reg.Match(token).Success)
+                    Console.WriteLine($"ID ({row},{col}): {token}");
+                else
+                    Console.WriteLine($"UNKNOWN ({row},{col}): {token}");
+
+                col += token.Length + 1;
+                if (token == ";") row++;
+            }
+            Console.WriteLine("EOF ({0},{1})", row, col);
+        }
+
+        static void Semantic_Analysis(int i)
+        {
+            if (i + 4 < finalArray.Count &&
+                variable_Reg.IsMatch(finalArray[i]) &&
+                finalArray[i + 1] == "=" &&
+                (Regex.IsMatch(finalArray[i + 2], @"^[0-9]+$") || variable_Reg.IsMatch(finalArray[i + 2])) &&
+                finalArray[i + 3] == "+" &&
+                (Regex.IsMatch(finalArray[i + 4], @"^[0-9]+$") || variable_Reg.IsMatch(finalArray[i + 4])))
+            {
+                string varName = finalArray[i];
+                string leftVal = finalArray[i + 2];
+                string rightVal = finalArray[i + 4];
+
+                int left = GetValue(leftVal);
+                int right = GetValue(rightVal);
+                int sum = left + right;
+
+                int index = FindSymbol(varName);
+                if (index != -1)
+                {
+                    Symboltable[index][3] = sum.ToString();
+                    Console.WriteLine($"[Semantic] {varName} = {left} + {right} = {sum}");
+                }
+            }
+        }
+
+        static int GetValue(string token)
+        {
+            if (Regex.IsMatch(token, @"^[0-9]+$"))
+                return int.Parse(token);
+            else
+            {
+                int idx = FindSymbol(token);
+                if (idx != -1)
+                    return int.Parse(Symboltable[idx][3]);
+            }
+            return 0;
+        }
+
+        static int FindSymbol(string name)
+        {
+            for (int i = 0; i < Symboltable.Count; i++)
+            {
+                if (Symboltable[i][0] == name)
+                    return i;
+            }
+            return -1;
+        }
+    }
+}
