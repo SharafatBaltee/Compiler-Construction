@@ -5,14 +5,19 @@ class Program
 {
     static void Main()
     {
-        string input = "if (a && b || !c)";
-        string pattern = @"&&|\|\||!";
+        string[] testCases = { "12.34", "0.123", "123.45", "1234.5", ".456", "123456", "123.4567", "1234567" };
+        Regex regex = new Regex(@"^\d{0,5}\.\d{1,5}$|^\d{1,6}$");
 
-        MatchCollection matches = Regex.Matches(input, pattern);
-
-        foreach (Match match in matches)
+        foreach (string num in testCases)
         {
-            Console.WriteLine($"Found logical operator: {match.Value}");
+            if (regex.IsMatch(num))
+            {
+                Console.WriteLine($"Valid: {num}");
+            }
+            else
+            {
+                Console.WriteLine($"Invalid: {num}");
+            }
         }
     }
 }
